@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 7113c6381d2946e4fb79c48a9e9a1806
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - _computeShaderResource: {fileID: 7200000, guid: 7958ec56d6df7b1459caf675c7a6e387,
+      type: 3}
+  - _vectorFieldTexture: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

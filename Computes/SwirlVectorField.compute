@@ -1,0 +1,68 @@
+#pragma kernel Update
+
+struct Point
+{
+    float2 Position;
+    float Radius;
+    int AttractDirection;
+    int RotateDirection;
+    float AttractRate;
+    float RotateIntensity;
+};
+
+float DeltaTime;
+float DampValue;
+RWTexture2D<float4> VectorField;
+StructuredBuffer<Point> Points;
+int PointsCount;
+
+float Remap(float In, float2 InMinMax, float2 OutMinMax)
+{
+    return OutMinMax.x + (In - InMinMax.x) * (OutMinMax.y - OutMinMax.x) / (InMinMax.y - InMinMax.x);
+}
+
+[numthreads(8, 8, 1)]
+void Update(uint2 tid : SV_DispatchThreadID)
+{
+    uint2 dim;
+    VectorField.GetDimensions(dim.x, dim.y);
+    float2 pos = (tid + 0.5 - dim * 0.5) / dim.y;
+
+    float3 vectorField = float3(0, 0, 0);
+    for(int i = 0; i < PointsCount; i++)
+    {   
+        // 点の情報を取得
+        Point currentPoint = Points[i];
+        float2 pointPos = currentPoint.Position;
+        float radius = currentPoint.Radius;
+        int attractDirection = currentPoint.AttractDirection;
+        int rotateDirection = currentPoint.RotateDirection;
+        float attractRate = currentPoint.AttractRate;
+        float rotateIntensity = currentPoint.RotateIntensity;
+
+        // 点との距離ベクトル
+        float3 vec = float3(pos - pointPos, 0.0);
+        float distance = clamp(length(vec), 0.0, radius);
+        float normalDistance = Remap(distance, float2(0.0, radius), float2(0.0, 1.0));
+        
+        // 円の半径に入っている場合
+        if (normalDistance < 1.0) 
+        {
+            float3 direction = normalize(vec);
+
+            // 引力ベクトル
+            float3 attractVec = attractDirection * direction;
+            
+            // 回転ベクトル
+            float3 rotateVec = normalize(cross(direction, float3(0, 0, rotateDirection))) * rotateIntensity;
+
+            // 引力ベクトルと回転ベクトルを合成
+            float strength = 1.0 - normalDistance;
+            vectorField += lerp(rotateVec, attractVec, attractRate) * strength;
+        }
+    }
+    
+    float3 previousVectorField = VectorField[tid].xyz;
+    float3 color = lerp(previousVectorField, vectorField, saturate(1.0 / DampValue * DeltaTime));
+    VectorField[tid] = float4(color, 1.0);
+}
